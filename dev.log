@@ -1,0 +1,12 @@
+
+> overatlas@0.1.0 dev
+> next dev --port 3000
+
+▲ Next.js 16.2.1 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://192.168.1.124:3000
+- Environments: .env
+✓ Ready in 1928ms
+
+○ Compiling / ...
+[?25h
