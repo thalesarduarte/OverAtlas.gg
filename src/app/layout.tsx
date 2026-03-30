@@ -3,7 +3,7 @@ import "./globals.css";
 
 import { SiteHeader } from "@/components/layout/site-header";
 import { SiteFooter } from "@/components/layout/site-footer";
-import { ToastProvider } from "@/components/ui/toast-provider";
+import { AppProviders } from "@/components/providers/app-providers";
 
 export const metadata: Metadata = {
   title: "OverAtlas",
@@ -14,13 +14,13 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang="pt-BR">
       <body>
-        <ToastProvider>
+        <AppProviders>
           <SiteHeader />
           <main className="mx-auto flex min-h-[calc(100vh-160px)] max-w-7xl flex-col gap-8 px-6 py-8">
             {children}
           </main>
           <SiteFooter />
-        </ToastProvider>
+        </AppProviders>
       </body>
     </html>
   );

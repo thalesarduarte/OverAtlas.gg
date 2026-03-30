@@ -71,7 +71,6 @@ model Team {
   region      String?
   description String?
   players     Player[]
-  favorites   Favorite[]
 }
 
 model Player {
@@ -85,7 +84,6 @@ model Player {
   description String?
   teamId      String?
   team        Team?    @relation(fields: [teamId], references: [id], onDelete: SetNull)
-  favorites   Favorite[]
 }
 
 model Tournament {
@@ -98,22 +96,19 @@ model Tournament {
   endDate     DateTime?
   prizePool   String?
   description String?
-  favorites   Favorite[]
 }
 
 model Favorite {
-  id           String        @id @default(cuid())
-  userId       String
-  type         FavoriteType
-  teamId       String?
-  playerId     String?
-  tournamentId String?
-  createdAt    DateTime      @default(now())
+  id        String       @id @default(cuid())
+  userId    String
+  type      FavoriteType
+  refId     String
+  createdAt DateTime     @default(now())
 
-  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  team       Team?       @relation(fields: [teamId], references: [id], onDelete: Cascade)
-  player     Player?     @relation(fields: [playerId], references: [id], onDelete: Cascade)
-  tournament Tournament? @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, type, refId])
+  @@index([userId, createdAt])
 }
 
 model LinkedProfile {
