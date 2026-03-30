@@ -12,6 +12,7 @@ export type PlayerProfile = {
   battleTag: string;
   displayName: string;
   title: string;
+  mainRole: string;
   rankSummary: string;
   overallWinrate: number;
   totalHours: number;

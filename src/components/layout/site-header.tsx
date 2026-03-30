@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Newspaper, Radar, Settings, Star, Swords, Trophy, Users } from "lucide-react";
 
 import { auth, signOut } from "@/lib/auth";
+import { ProfileSearch } from "@/components/layout/profile-search";
 
 const links: Array<{ href: Route; label: string; icon: typeof Trophy }> = [
   { href: "/teams", label: "Times", icon: Trophy },
@@ -27,6 +28,8 @@ export async function SiteHeader() {
             <p className="text-xl font-bold text-white">OverAtlas</p>
           </div>
         </Link>
+
+        <ProfileSearch />
 
         <nav className="hidden items-center gap-2 md:flex">
           {links.map(({ href, label, icon: Icon }) => (

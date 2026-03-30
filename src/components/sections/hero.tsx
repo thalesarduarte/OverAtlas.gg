@@ -18,7 +18,7 @@ export function HeroSection() {
           <Link href="/register" className="rounded-full bg-amber-400 px-5 py-3 font-semibold text-slate-950 transition hover:opacity-90">
             Começar agora
           </Link>
-          <Link href="/profiles/thales-1234" className="rounded-full border border-white/10 px-5 py-3 font-semibold text-white transition hover:bg-white/5">
+          <Link href="/profile/Thales%231234" className="rounded-full border border-white/10 px-5 py-3 font-semibold text-white transition hover:bg-white/5">
             Ver perfil demo
           </Link>
         </div>
