@@ -5,26 +5,13 @@
 ▲ Next.js 16.2.1
 - Local:         http://localhost:3000
 - Network:       http://192.168.1.9:3000
-✓ Ready in 915ms
-[profile-service] Returning fresh cached profile
-[overfast] GET /players/tekrop-2217/summary
-[overfast] GET /players/tekrop-2217/career
-[profile-service] Returning fresh cached profile
-[overfast] GET /players/thales-1234/summary
-[overfast] GET /players/thales-1234/career
-[overfast] GET /players?name=TeKrop-2217
-[overfast] GET /players?name=Thales-1234
-[overfast] GET /players?name=TeKrop
+✓ Ready in 1299ms
+[overfast] GET /players/proper-1111/summary
+[overfast] GET /players/proper-1111/career
+[overfast] GET /players?name=Proper-1111
 [profile-service] Profile resolved by mock-provider
-[overfast] GET /players/tekrop-2217/summary
-[overfast] GET /players/tekrop-2217/career
-[overfast] GET /players?name=TeKrop-2217
-[overfast] GET /players?name=TeKrop
-prisma:error Error in PostgreSQL connection: Error { kind: Closed, cause: None }
-prisma:error Error in PostgreSQL connection: Error { kind: Closed, cause: None }
-prisma:error Error in PostgreSQL connection: Error { kind: Closed, cause: None }
-prisma:error Error in PostgreSQL connection: Error { kind: Closed, cause: None }
-prisma:error Error in PostgreSQL connection: Error { kind: Closed, cause: None }
-prisma:error Error in PostgreSQL connection: Error { kind: Closed, cause: None }
-prisma:error Error in PostgreSQL connection: Error { kind: Closed, cause: None }
-prisma:error Error in PostgreSQL connection: Error { kind: Closed, cause: None }
+[overfast] GET /players/thxzz-1699/summary
+[overfast] GET /players/thxzz-1699/career
+[overfast] GET /players?name=Thxzz-1699
+[overfast] GET /players/Thxzz-1699/summary
+[overfast] GET /players/Thxzz-1699/career

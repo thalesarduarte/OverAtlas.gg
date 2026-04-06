@@ -14,6 +14,8 @@ export type PaginationMeta = {
 export type PaginatedResult<T> = {
   items: T[];
   pagination: PaginationMeta;
+  isDegraded: boolean;
+  degradedReason?: string;
 };
 
 export type TeamFilters = {
@@ -54,6 +56,116 @@ export type NewsFilters = {
   pageSize?: number;
 };
 
+type TeamListItem = Prisma.TeamGetPayload<{
+  include: {
+    rankings: {
+      include: {
+        tournament: true;
+      };
+    };
+    rosters: {
+      include: {
+        player: true;
+      };
+    };
+  };
+}>;
+
+type PlayerListItem = Prisma.PlayerGetPayload<{
+  include: {
+    team: true;
+    history: {
+      include: {
+        team: true;
+      };
+    };
+  };
+}>;
+
+type TournamentListItem = Prisma.TournamentGetPayload<{
+  include: {
+    stages: true;
+    rankings: {
+      include: {
+        team: true;
+      };
+    };
+    matches: {
+      include: {
+        homeTeam: true;
+        awayTeam: true;
+      };
+    };
+  };
+}>;
+
+type MatchListItem = Prisma.MatchGetPayload<{
+  include: {
+    tournament: true;
+    stage: true;
+    homeTeam: true;
+    awayTeam: true;
+    winnerTeam: true;
+  };
+}>;
+
+type NewsListItem = Prisma.NewsPostGetPayload<Record<string, never>>;
+
+type RankingListItem = Prisma.TeamRankingGetPayload<{
+  include: {
+    team: true;
+    tournament: true;
+  };
+}>;
+
+type HomeFeaturedTournament = Prisma.TournamentGetPayload<{
+  include: {
+    matches: {
+      include: {
+        homeTeam: true;
+        awayTeam: true;
+      };
+    };
+  };
+}>;
+
+type HomeFeaturedMatch = Prisma.MatchGetPayload<{
+  include: {
+    tournament: true;
+    stage: true;
+    homeTeam: true;
+    awayTeam: true;
+    winnerTeam: true;
+  };
+}>;
+
+type HomeFeaturedTeam = Prisma.TeamGetPayload<{
+  include: {
+    rankings: {
+      include: {
+        tournament: true;
+      };
+    };
+  };
+}>;
+
+type HomeFeaturedPlayer = Prisma.PlayerGetPayload<{
+  include: {
+    team: true;
+  };
+}>;
+
+export type HomeDashboardData = {
+  featuredTournaments: HomeFeaturedTournament[];
+  featuredMatches: HomeFeaturedMatch[];
+  latestNews: NewsListItem[];
+  featuredTeams: HomeFeaturedTeam[];
+  featuredPlayers: HomeFeaturedPlayer[];
+  rankings: RankingListItem[];
+  isDegraded: boolean;
+  degradedReason?: string;
+};
+
 function getPagination(inputPage?: number, inputPageSize?: number) {
   const page = Math.max(1, inputPage ?? 1);
   const pageSize = Math.max(1, Math.min(24, inputPageSize ?? DEFAULT_PAGE_SIZE));
@@ -76,6 +188,21 @@ function buildPaginationMeta(
     totalItems,
     totalPages: Math.max(1, Math.ceil(totalItems / pageSize))
   };
+}
+
+function createEmptyPaginatedResult<T>(
+  page: number,
+  pageSize: number
+): PaginatedResult<T> {
+  return {
+    items: [],
+    pagination: buildPaginationMeta(page, pageSize, 0),
+    isDegraded: false
+  };
+}
+
+function logAtlasDataError(scope: string, error: unknown) {
+  console.error(`[atlas-data] Database read failed in ${scope}`, error);
 }
 
 function buildContainsQuery(query?: string) {
@@ -105,7 +232,9 @@ function getTournamentStatus(tournament: {
   return "ongoing";
 }
 
-export async function listTeams(filters: TeamFilters = {}) {
+export async function listTeams(
+  filters: TeamFilters = {}
+): Promise<PaginatedResult<TeamListItem>> {
   const { page, pageSize, skip } = getPagination(filters.page, filters.pageSize);
   const query = buildContainsQuery(filters.query);
 
@@ -127,118 +256,135 @@ export async function listTeams(filters: TeamFilters = {}) {
       ? { updatedAt: "desc" }
       : { name: "asc" };
 
-  const [items, totalItems] = await Promise.all([
-    prisma.team.findMany({
-      where,
+  try {
+    const [items, totalItems] = await Promise.all([
+      prisma.team.findMany({
+        where,
+        include: {
+          rankings: {
+            include: {
+              tournament: true
+            },
+            orderBy: [{ updatedAt: "desc" }, { position: "asc" }],
+            take: 1
+          },
+          rosters: {
+            where: {
+              isActive: true
+            },
+            include: {
+              player: true
+            },
+            orderBy: {
+              createdAt: "asc"
+            },
+            take: 5
+          }
+        },
+        orderBy,
+        skip,
+        take: pageSize
+      }),
+      prisma.team.count({ where })
+    ]);
+
+    return {
+      items,
+      pagination: buildPaginationMeta(page, pageSize, totalItems),
+      isDegraded: false
+    } satisfies PaginatedResult<TeamListItem>;
+  } catch (error) {
+    logAtlasDataError("listTeams", error);
+    return {
+      ...createEmptyPaginatedResult<TeamListItem>(page, pageSize),
+      isDegraded: true,
+      degradedReason: "Nao foi possivel carregar a lista de times agora."
+    };
+  }
+}
+
+export async function getTeamBySlug(slug: string) {
+  try {
+    const team = await prisma.team.findUnique({
+      where: { slug },
       include: {
+        aliases: true,
         rankings: {
           include: {
             tournament: true
           },
-          orderBy: [{ updatedAt: "desc" }, { position: "asc" }],
-          take: 1
+          orderBy: [{ updatedAt: "desc" }, { position: "asc" }]
         },
         rosters: {
-          where: {
-            isActive: true
+          include: {
+            player: true,
+            tournament: true
           },
+          orderBy: [{ isActive: "desc" }, { joinedAt: "desc" }]
+        },
+        history: {
           include: {
             player: true
           },
-          orderBy: {
-            createdAt: "asc"
+          orderBy: [{ isCurrent: "desc" }, { updatedAt: "desc" }]
+        },
+        homeMatches: {
+          include: {
+            tournament: true,
+            stage: true,
+            homeTeam: true,
+            awayTeam: true,
+            winnerTeam: true
           },
-          take: 5
+          orderBy: { scheduledAt: "desc" },
+          take: 10
+        },
+        awayMatches: {
+          include: {
+            tournament: true,
+            stage: true,
+            homeTeam: true,
+            awayTeam: true,
+            winnerTeam: true
+          },
+          orderBy: { scheduledAt: "desc" },
+          take: 10
         }
-      },
-      orderBy,
-      skip,
-      take: pageSize
-    }),
-    prisma.team.count({ where })
-  ]);
-
-  return {
-    items,
-    pagination: buildPaginationMeta(page, pageSize, totalItems)
-  } satisfies PaginatedResult<(typeof items)[number]>;
-}
-
-export async function getTeamBySlug(slug: string) {
-  const team = await prisma.team.findUnique({
-    where: { slug },
-    include: {
-      aliases: true,
-      rankings: {
-        include: {
-          tournament: true
-        },
-        orderBy: [{ updatedAt: "desc" }, { position: "asc" }]
-      },
-      rosters: {
-        include: {
-          player: true,
-          tournament: true
-        },
-        orderBy: [{ isActive: "desc" }, { joinedAt: "desc" }]
-      },
-      history: {
-        include: {
-          player: true
-        },
-        orderBy: [{ isCurrent: "desc" }, { updatedAt: "desc" }]
-      },
-      homeMatches: {
-        include: {
-          tournament: true,
-          stage: true,
-          homeTeam: true,
-          awayTeam: true,
-          winnerTeam: true
-        },
-        orderBy: { scheduledAt: "desc" },
-        take: 10
-      },
-      awayMatches: {
-        include: {
-          tournament: true,
-          stage: true,
-          homeTeam: true,
-          awayTeam: true,
-          winnerTeam: true
-        },
-        orderBy: { scheduledAt: "desc" },
-        take: 10
       }
-    }
-  });
+    });
 
-  if (!team) {
+    if (!team) {
+      return null;
+    }
+
+    const recentMatches = [...team.homeMatches, ...team.awayMatches]
+      .sort((left, right) => {
+        const leftTime = left.scheduledAt?.getTime() ?? 0;
+        const rightTime = right.scheduledAt?.getTime() ?? 0;
+        return rightTime - leftTime;
+      })
+      .slice(0, 10);
+
+    const relatedNews = await listNews({
+      query: team.name,
+      page: 1,
+      pageSize: 6
+    });
+
+    return {
+      ...team,
+      recentMatches,
+      relatedNews: relatedNews.items
+    };
+  } catch (error) {
+    logAtlasDataError("getTeamBySlug", error);
     return null;
   }
-
-  const recentMatches = [...team.homeMatches, ...team.awayMatches]
-    .sort((left, right) => {
-      const leftTime = left.scheduledAt?.getTime() ?? 0;
-      const rightTime = right.scheduledAt?.getTime() ?? 0;
-      return rightTime - leftTime;
-    })
-    .slice(0, 10);
-
-  const relatedNews = await listNews({
-    query: team.name,
-    page: 1,
-    pageSize: 6
-  });
-
-  return {
-    ...team,
-    recentMatches,
-    relatedNews: relatedNews.items
-  };
 }
 
-export async function listPlayers(filters: PlayerFilters = {}) {
+export async function listPlayers(
+  filters: PlayerFilters = {}
+): Promise<PaginatedResult<PlayerListItem>> {
   const { page, pageSize, skip } = getPagination(filters.page, filters.pageSize);
   const query = buildContainsQuery(filters.query);
 
@@ -256,110 +402,127 @@ export async function listPlayers(filters: PlayerFilters = {}) {
       : {})
   };
 
-  const [items, totalItems] = await Promise.all([
-    prisma.player.findMany({
-      where,
+  try {
+    const [items, totalItems] = await Promise.all([
+      prisma.player.findMany({
+        where,
+        include: {
+          team: true,
+          history: {
+            include: {
+              team: true
+            },
+            where: {
+              isCurrent: true
+            },
+            take: 1
+          }
+        },
+        orderBy: filters.sort === "recent" ? { updatedAt: "desc" } : { name: "asc" },
+        skip,
+        take: pageSize
+      }),
+      prisma.player.count({ where })
+    ]);
+
+    return {
+      items,
+      pagination: buildPaginationMeta(page, pageSize, totalItems),
+      isDegraded: false
+    } satisfies PaginatedResult<PlayerListItem>;
+  } catch (error) {
+    logAtlasDataError("listPlayers", error);
+    return {
+      ...createEmptyPaginatedResult<PlayerListItem>(page, pageSize),
+      isDegraded: true,
+      degradedReason: "Nao foi possivel carregar a lista de jogadores agora."
+    };
+  }
+}
+
+export async function getPlayerBySlug(slug: string) {
+  try {
+    const player = await prisma.player.findUnique({
+      where: { slug },
       include: {
         team: true,
+        aliases: true,
+        rosters: {
+          include: {
+            team: true,
+            tournament: true
+          },
+          orderBy: [{ isActive: "desc" }, { joinedAt: "desc" }]
+        },
         history: {
           include: {
             team: true
           },
-          where: {
-            isCurrent: true
-          },
-          take: 1
+          orderBy: [{ isCurrent: "desc" }, { updatedAt: "desc" }]
         }
-      },
-      orderBy: filters.sort === "recent" ? { updatedAt: "desc" } : { name: "asc" },
-      skip,
-      take: pageSize
-    }),
-    prisma.player.count({ where })
-  ]);
-
-  return {
-    items,
-    pagination: buildPaginationMeta(page, pageSize, totalItems)
-  } satisfies PaginatedResult<(typeof items)[number]>;
-}
-
-export async function getPlayerBySlug(slug: string) {
-  const player = await prisma.player.findUnique({
-    where: { slug },
-    include: {
-      team: true,
-      aliases: true,
-      rosters: {
-        include: {
-          team: true,
-          tournament: true
-        },
-        orderBy: [{ isActive: "desc" }, { joinedAt: "desc" }]
-      },
-      history: {
-        include: {
-          team: true
-        },
-        orderBy: [{ isCurrent: "desc" }, { updatedAt: "desc" }]
       }
-    }
-  });
+    });
 
-  if (!player) {
+    if (!player) {
+      return null;
+    }
+
+    const relatedMatches = await prisma.match.findMany({
+      where: {
+        OR: [
+          {
+            homeTeam: {
+              players: {
+                some: {
+                  id: player.id
+                }
+              }
+            }
+          },
+          {
+            awayTeam: {
+              players: {
+                some: {
+                  id: player.id
+                }
+              }
+            }
+          }
+        ]
+      },
+      include: {
+        tournament: true,
+        stage: true,
+        homeTeam: true,
+        awayTeam: true,
+        winnerTeam: true
+      },
+      orderBy: {
+        scheduledAt: "desc"
+      },
+      take: 10
+    });
+
+    const relatedNews = await listNews({
+      query: player.name,
+      page: 1,
+      pageSize: 6
+    });
+
+    return {
+      ...player,
+      relatedMatches,
+      relatedNews: relatedNews.items
+    };
+  } catch (error) {
+    logAtlasDataError("getPlayerBySlug", error);
     return null;
   }
-
-  const relatedMatches = await prisma.match.findMany({
-    where: {
-      OR: [
-        {
-          homeTeam: {
-            players: {
-              some: {
-                id: player.id
-              }
-            }
-          }
-        },
-        {
-          awayTeam: {
-            players: {
-              some: {
-                id: player.id
-              }
-            }
-          }
-        }
-      ]
-    },
-    include: {
-      tournament: true,
-      stage: true,
-      homeTeam: true,
-      awayTeam: true,
-      winnerTeam: true
-    },
-    orderBy: {
-      scheduledAt: "desc"
-    },
-    take: 10
-  });
-
-  const relatedNews = await listNews({
-    query: player.name,
-    page: 1,
-    pageSize: 6
-  });
-
-  return {
-    ...player,
-    relatedMatches,
-    relatedNews: relatedNews.items
-  };
 }
 
-export async function listTournaments(filters: TournamentFilters = {}) {
+export async function listTournaments(
+  filters: TournamentFilters = {}
+): Promise<PaginatedResult<TournamentListItem>> {
   const { page, pageSize, skip } = getPagination(filters.page, filters.pageSize);
   const query = buildContainsQuery(filters.query);
 
@@ -375,105 +538,122 @@ export async function listTournaments(filters: TournamentFilters = {}) {
       : {})
   };
 
-  const [rawItems, totalItems] = await Promise.all([
-    prisma.tournament.findMany({
-      where: rawWhere,
+  try {
+    const [rawItems, totalItems] = await Promise.all([
+      prisma.tournament.findMany({
+        where: rawWhere,
+        include: {
+          stages: true,
+          rankings: {
+            include: {
+              team: true
+            },
+            orderBy: {
+              position: "asc"
+            },
+            take: 8
+          },
+          matches: {
+            include: {
+              homeTeam: true,
+              awayTeam: true
+            },
+            orderBy: {
+              scheduledAt: "asc"
+            },
+            take: 6
+          }
+        },
+        orderBy: filters.sort === "name" ? { name: "asc" } : { startDate: "desc" },
+        skip,
+        take: pageSize
+      }),
+      prisma.tournament.count({ where: rawWhere })
+    ]);
+
+    const filteredItems = filters.status
+      ? rawItems.filter((item) => getTournamentStatus(item) === filters.status)
+      : rawItems;
+
+    return {
+      items: filteredItems,
+      pagination: buildPaginationMeta(page, pageSize, totalItems),
+      isDegraded: false
+    } satisfies PaginatedResult<TournamentListItem>;
+  } catch (error) {
+    logAtlasDataError("listTournaments", error);
+    return {
+      ...createEmptyPaginatedResult<TournamentListItem>(page, pageSize),
+      isDegraded: true,
+      degradedReason: "Nao foi possivel carregar a lista de campeonatos agora."
+    };
+  }
+}
+
+export async function getTournamentBySlug(slug: string) {
+  try {
+    const tournament = await prisma.tournament.findUnique({
+      where: { slug },
       include: {
-        stages: true,
+        stages: {
+          orderBy: [{ order: "asc" }, { startDate: "asc" }]
+        },
         rankings: {
           include: {
             team: true
           },
           orderBy: {
             position: "asc"
-          },
-          take: 8
+          }
         },
         matches: {
           include: {
+            stage: true,
             homeTeam: true,
-            awayTeam: true
+            awayTeam: true,
+            winnerTeam: true
           },
           orderBy: {
             scheduledAt: "asc"
+          }
+        },
+        rosters: {
+          include: {
+            team: true,
+            player: true
           },
-          take: 6
-        }
-      },
-      orderBy: filters.sort === "name" ? { name: "asc" } : { startDate: "desc" },
-      skip,
-      take: pageSize
-    }),
-    prisma.tournament.count({ where: rawWhere })
-  ]);
-
-  const filteredItems = filters.status
-    ? rawItems.filter((item) => getTournamentStatus(item) === filters.status)
-    : rawItems;
-
-  return {
-    items: filteredItems,
-    pagination: buildPaginationMeta(page, pageSize, totalItems)
-  } satisfies PaginatedResult<(typeof rawItems)[number]>;
-}
-
-export async function getTournamentBySlug(slug: string) {
-  const tournament = await prisma.tournament.findUnique({
-    where: { slug },
-    include: {
-      stages: {
-        orderBy: [{ order: "asc" }, { startDate: "asc" }]
-      },
-      rankings: {
-        include: {
-          team: true
-        },
-        orderBy: {
-          position: "asc"
-        }
-      },
-      matches: {
-        include: {
-          stage: true,
-          homeTeam: true,
-          awayTeam: true,
-          winnerTeam: true
-        },
-        orderBy: {
-          scheduledAt: "asc"
-        }
-      },
-      rosters: {
-        include: {
-          team: true,
-          player: true
-        },
-        where: {
-          isActive: true
+          where: {
+            isActive: true
+          }
         }
       }
-    }
-  });
+    });
 
-  if (!tournament) {
+    if (!tournament) {
+      return null;
+    }
+
+    const relatedNews = await listNews({
+      query: tournament.name,
+      page: 1,
+      pageSize: 6
+    });
+
+    return {
+      ...tournament,
+      derivedStatus: getTournamentStatus(tournament),
+      participants: tournament.rankings.map((ranking) => ranking.team),
+      relatedNews: relatedNews.items
+    };
+  } catch (error) {
+    logAtlasDataError("getTournamentBySlug", error);
     return null;
   }
-
-  const relatedNews = await listNews({
-    query: tournament.name,
-    page: 1,
-    pageSize: 6
-  });
-
-  return {
-    ...tournament,
-    derivedStatus: getTournamentStatus(tournament),
-    participants: tournament.rankings.map((ranking) => ranking.team),
-    relatedNews: relatedNews.items
-  };
 }
 
-export async function listMatches(filters: MatchFilters = {}) {
+export async function listMatches(
+  filters: MatchFilters = {}
+): Promise<PaginatedResult<MatchListItem>> {
   const { page, pageSize, skip } = getPagination(filters.page, filters.pageSize);
   const query = buildContainsQuery(filters.query);
 
@@ -491,60 +671,77 @@ export async function listMatches(filters: MatchFilters = {}) {
       : {})
   };
 
-  const [items, totalItems] = await Promise.all([
-    prisma.match.findMany({
-      where,
+  try {
+    const [items, totalItems] = await Promise.all([
+      prisma.match.findMany({
+        where,
+        include: {
+          tournament: true,
+          stage: true,
+          homeTeam: true,
+          awayTeam: true,
+          winnerTeam: true
+        },
+        orderBy: {
+          scheduledAt: "desc"
+        },
+        skip,
+        take: pageSize
+      }),
+      prisma.match.count({ where })
+    ]);
+
+    return {
+      items,
+      pagination: buildPaginationMeta(page, pageSize, totalItems),
+      isDegraded: false
+    } satisfies PaginatedResult<MatchListItem>;
+  } catch (error) {
+    logAtlasDataError("listMatches", error);
+    return {
+      ...createEmptyPaginatedResult<MatchListItem>(page, pageSize),
+      isDegraded: true,
+      degradedReason: "Nao foi possivel carregar a lista de partidas agora."
+    };
+  }
+}
+
+export async function getMatchBySlug(slug: string) {
+  try {
+    const match = await prisma.match.findUnique({
+      where: { slug },
       include: {
         tournament: true,
         stage: true,
         homeTeam: true,
         awayTeam: true,
         winnerTeam: true
-      },
-      orderBy: {
-        scheduledAt: "desc"
-      },
-      skip,
-      take: pageSize
-    }),
-    prisma.match.count({ where })
-  ]);
+      }
+    });
 
-  return {
-    items,
-    pagination: buildPaginationMeta(page, pageSize, totalItems)
-  } satisfies PaginatedResult<(typeof items)[number]>;
-}
-
-export async function getMatchBySlug(slug: string) {
-  const match = await prisma.match.findUnique({
-    where: { slug },
-    include: {
-      tournament: true,
-      stage: true,
-      homeTeam: true,
-      awayTeam: true,
-      winnerTeam: true
+    if (!match) {
+      return null;
     }
-  });
 
-  if (!match) {
+    const relatedNews = await listNews({
+      query: match.tournament?.name ?? match.name,
+      page: 1,
+      pageSize: 5
+    });
+
+    return {
+      ...match,
+      relatedNews: relatedNews.items
+    };
+  } catch (error) {
+    logAtlasDataError("getMatchBySlug", error);
     return null;
   }
-
-  const relatedNews = await listNews({
-    query: match.tournament?.name ?? match.name,
-    page: 1,
-    pageSize: 5
-  });
-
-  return {
-    ...match,
-    relatedNews: relatedNews.items
-  };
 }
 
-export async function listNews(filters: NewsFilters = {}) {
+export async function listNews(
+  filters: NewsFilters = {}
+): Promise<PaginatedResult<NewsListItem>> {
   const { page, pageSize, skip } = getPagination(filters.page, filters.pageSize);
   const query = buildContainsQuery(filters.query);
 
@@ -559,97 +756,122 @@ export async function listNews(filters: NewsFilters = {}) {
       }
     : {};
 
-  const [items, totalItems] = await Promise.all([
-    prisma.newsPost.findMany({
-      where,
-      orderBy: [{ publishedAt: "desc" }, { createdAt: "desc" }],
-      skip,
-      take: pageSize
-    }),
-    prisma.newsPost.count({ where })
-  ]);
+  try {
+    const [items, totalItems] = await Promise.all([
+      prisma.newsPost.findMany({
+        where,
+        orderBy: [{ publishedAt: "desc" }, { createdAt: "desc" }],
+        skip,
+        take: pageSize
+      }),
+      prisma.newsPost.count({ where })
+    ]);
 
-  return {
-    items,
-    pagination: buildPaginationMeta(page, pageSize, totalItems)
-  } satisfies PaginatedResult<(typeof items)[number]>;
+    return {
+      items,
+      pagination: buildPaginationMeta(page, pageSize, totalItems),
+      isDegraded: false
+    } satisfies PaginatedResult<NewsListItem>;
+  } catch (error) {
+    logAtlasDataError("listNews", error);
+    return {
+      ...createEmptyPaginatedResult<NewsListItem>(page, pageSize),
+      isDegraded: true,
+      degradedReason: "Nao foi possivel carregar a lista de noticias agora."
+    };
+  }
 }
 
 export async function getNewsPostBySlug(slug: string) {
-  const newsPost = await prisma.newsPost.findUnique({
-    where: { slug }
-  });
+  try {
+    const newsPost = await prisma.newsPost.findUnique({
+      where: { slug }
+    });
 
-  if (!newsPost) {
+    if (!newsPost) {
+      return null;
+    }
+
+    const haystack = [newsPost.title, newsPost.excerpt, newsPost.body]
+      .filter(Boolean)
+      .join(" ")
+      .toLowerCase();
+
+    const [teams, players, tournaments, matches] = await Promise.all([
+      prisma.team.findMany({
+        take: 50,
+        orderBy: { updatedAt: "desc" }
+      }),
+      prisma.player.findMany({
+        take: 50,
+        orderBy: { updatedAt: "desc" }
+      }),
+      prisma.tournament.findMany({
+        take: 30,
+        orderBy: { startDate: "desc" }
+      }),
+      prisma.match.findMany({
+        include: {
+          tournament: true,
+          homeTeam: true,
+          awayTeam: true
+        },
+        take: 20,
+        orderBy: { scheduledAt: "desc" }
+      })
+    ]);
+
+    return {
+      ...newsPost,
+      relatedEntities: {
+        teams: teams.filter((team) => haystack.includes(team.name.toLowerCase())).slice(0, 4),
+        players: players
+          .filter((player) => haystack.includes(player.name.toLowerCase()))
+          .slice(0, 4),
+        tournaments: tournaments
+          .filter((tournament) => haystack.includes(tournament.name.toLowerCase()))
+          .slice(0, 4),
+        matches: matches
+          .filter((match) => {
+            return [match.homeTeam?.name, match.awayTeam?.name, match.tournament?.name]
+              .filter(Boolean)
+              .some((value) => haystack.includes(String(value).toLowerCase()));
+          })
+          .slice(0, 4)
+      }
+    };
+  } catch (error) {
+    logAtlasDataError("getNewsPostBySlug", error);
     return null;
   }
+}
 
-  const haystack = [newsPost.title, newsPost.excerpt, newsPost.body]
-    .filter(Boolean)
-    .join(" ")
-    .toLowerCase();
-
-  const [teams, players, tournaments, matches] = await Promise.all([
-    prisma.team.findMany({
-      take: 50,
-      orderBy: { updatedAt: "desc" }
-    }),
-    prisma.player.findMany({
-      take: 50,
-      orderBy: { updatedAt: "desc" }
-    }),
-    prisma.tournament.findMany({
-      take: 30,
-      orderBy: { startDate: "desc" }
-    }),
-    prisma.match.findMany({
+export async function listRankings(limit = 10): Promise<RankingListItem[]> {
+  try {
+    return await prisma.teamRanking.findMany({
       include: {
-        tournament: true,
-        homeTeam: true,
-        awayTeam: true
+        team: true,
+        tournament: true
       },
-      take: 20,
-      orderBy: { scheduledAt: "desc" }
-    })
-  ]);
-
-  return {
-    ...newsPost,
-    relatedEntities: {
-      teams: teams.filter((team) => haystack.includes(team.name.toLowerCase())).slice(0, 4),
-      players: players.filter((player) => haystack.includes(player.name.toLowerCase())).slice(0, 4),
-      tournaments: tournaments
-        .filter((tournament) => haystack.includes(tournament.name.toLowerCase()))
-        .slice(0, 4),
-      matches: matches
-        .filter((match) => {
-          return [
-            match.homeTeam?.name,
-            match.awayTeam?.name,
-            match.tournament?.name
-          ]
-            .filter(Boolean)
-            .some((value) => haystack.includes(String(value).toLowerCase()));
-        })
-        .slice(0, 4)
-    }
-  };
+      orderBy: [{ updatedAt: "desc" }, { position: "asc" }],
+      take: limit
+    });
+  } catch (error) {
+    logAtlasDataError("listRankings", error);
+    return [];
+  }
 }
 
-export async function listRankings(limit = 10) {
-  return prisma.teamRanking.findMany({
-    include: {
-      team: true,
-      tournament: true
-    },
-    orderBy: [{ updatedAt: "desc" }, { position: "asc" }],
-    take: limit
-  });
-}
-
-export async function getHomeDashboardData() {
-  const [featuredTournaments, featuredMatches, latestNews, featuredTeams, featuredPlayers, rankings] =
-    await Promise.all([
+export async function getHomeDashboardData(): Promise<HomeDashboardData> {
+  try {
+    const [
+      featuredTournaments,
+      featuredMatches,
+      latestNews,
+      featuredTeams,
+      featuredPlayers,
+      rankings
+    ] = await Promise.all([
       prisma.tournament.findMany({
         include: {
           matches: {
@@ -705,12 +927,27 @@ export async function getHomeDashboardData() {
       listRankings(8)
     ]);
 
-  return {
-    featuredTournaments,
-    featuredMatches,
-    latestNews,
-    featuredTeams,
-    featuredPlayers,
-    rankings
-  };
+    return {
+      featuredTournaments,
+      featuredMatches,
+      latestNews,
+      featuredTeams,
+      featuredPlayers,
+      rankings,
+      isDegraded: false
+    };
+  } catch (error) {
+    logAtlasDataError("getHomeDashboardData", error);
+    return {
+      featuredTournaments: [],
+      featuredMatches: [],
+      latestNews: [],
+      featuredTeams: [],
+      featuredPlayers: [],
+      rankings: [],
+      isDegraded: true,
+      degradedReason:
+        "Nao foi possivel carregar os dados principais agora. A conexao com o banco parece indisponivel."
+    };
+  }
 }

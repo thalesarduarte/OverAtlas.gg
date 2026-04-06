@@ -1,8 +1,9 @@
+import { NewsCard } from "@/components/ui/data-cards";
+import { DegradedNotice } from "@/components/ui/degraded-notice";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PaginationControls } from "@/components/ui/pagination-controls";
 import { SearchInput } from "@/components/ui/search-input";
 import { SectionShell } from "@/components/ui/section-shell";
-import { NewsCard } from "@/components/ui/data-cards";
 import { listNews } from "@/lib/atlas-data";
 
 export default async function NewsPage({
@@ -18,11 +19,20 @@ export default async function NewsPage({
 
   return (
     <SectionShell
-      title="Notícias"
-      description="Cobertura editorial servida do banco com paginação e navegação para a matéria completa."
+      title="Noticias"
+      description="Cobertura editorial servida do banco com paginacao e navegacao para a materia completa."
     >
+      {data.isDegraded ? (
+        <DegradedNotice
+          description={
+            data.degradedReason ??
+            "A lista de noticias entrou em fallback porque a base principal nao respondeu."
+          }
+        />
+      ) : null}
+
       <form className="mb-6 grid gap-3 md:grid-cols-[1fr,120px]">
-        <SearchInput name="q" placeholder="Buscar notícia" defaultValue={params.q} />
+        <SearchInput name="q" placeholder="Buscar noticia" defaultValue={params.q} />
         <button className="rounded-2xl bg-cyan-300 px-4 py-3 text-sm font-semibold text-slate-950">
           Aplicar
         </button>
@@ -30,8 +40,8 @@ export default async function NewsPage({
 
       {data.items.length === 0 ? (
         <EmptyState
-          title="Nenhuma notícia encontrada"
-          description="As notícias entram no produto conforme os conectores editoriais sincronizam."
+          title="Nenhuma noticia encontrada"
+          description="As noticias entram no produto conforme os conectores editoriais sincronizam."
         />
       ) : (
         <div className="grid gap-4 xl:grid-cols-2">

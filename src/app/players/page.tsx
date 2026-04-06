@@ -1,8 +1,9 @@
+import { PlayerCard } from "@/components/ui/data-cards";
+import { DegradedNotice } from "@/components/ui/degraded-notice";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PaginationControls } from "@/components/ui/pagination-controls";
 import { SearchInput } from "@/components/ui/search-input";
 import { SectionShell } from "@/components/ui/section-shell";
-import { PlayerCard } from "@/components/ui/data-cards";
 import { listPlayers } from "@/lib/atlas-data";
 
 export default async function PlayersPage({
@@ -22,8 +23,17 @@ export default async function PlayersPage({
   return (
     <SectionShell
       title="Jogadores"
-      description="Perfis competitivos ligados ao banco, com time atual, role e histórico disponíveis."
+      description="Perfis competitivos ligados ao banco, com time atual, role e historico disponiveis."
     >
+      {data.isDegraded ? (
+        <DegradedNotice
+          description={
+            data.degradedReason ??
+            "A lista de jogadores entrou em fallback porque a base principal nao respondeu."
+          }
+        />
+      ) : null}
+
       <form className="mb-6 grid gap-3 md:grid-cols-[1fr,180px,180px,180px,120px]">
         <SearchInput name="q" placeholder="Buscar jogador" defaultValue={params.q} />
         <select
@@ -41,7 +51,7 @@ export default async function PlayersPage({
           defaultValue={params.region ?? ""}
           className="rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-3 text-sm text-white"
         >
-          <option value="">Todas as regiões</option>
+          <option value="">Todas as regioes</option>
           <option value="KR">KR</option>
           <option value="EMEA">EMEA</option>
           <option value="NA">NA</option>

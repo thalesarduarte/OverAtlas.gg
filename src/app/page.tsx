@@ -14,6 +14,21 @@ export default async function HomePage() {
 
   return (
     <div className="space-y-8">
+      {dashboard.isDegraded ? (
+        <section className="rounded-[28px] border border-amber-400/20 bg-amber-500/10 p-5 text-amber-50 shadow-[0_0_0_1px_rgba(251,191,36,0.08)]">
+          <p className="text-xs uppercase tracking-[0.3em] text-amber-300">
+            Modo degradado
+          </p>
+          <h2 className="mt-2 text-lg font-semibold text-white">
+            Alguns dados estao temporariamente indisponiveis.
+          </h2>
+          <p className="mt-2 max-w-4xl text-sm leading-6 text-amber-100/90">
+            {dashboard.degradedReason ??
+              "A aplicacao entrou em fallback porque a base principal nao respondeu a tempo. A interface continua funcionando, mas algumas secoes podem aparecer vazias ate a conexao normalizar."}
+          </p>
+        </section>
+      ) : null}
+
       <section className="glass-panel overflow-hidden rounded-[36px] p-6 md:p-8 xl:p-10">
         <div className="grid gap-10 xl:grid-cols-[1.25fr,0.75fr]">
           <div>

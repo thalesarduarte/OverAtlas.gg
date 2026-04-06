@@ -1,8 +1,9 @@
+import { TournamentCard } from "@/components/ui/data-cards";
+import { DegradedNotice } from "@/components/ui/degraded-notice";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PaginationControls } from "@/components/ui/pagination-controls";
 import { SearchInput } from "@/components/ui/search-input";
 import { SectionShell } from "@/components/ui/section-shell";
-import { TournamentCard } from "@/components/ui/data-cards";
 import { listTournaments } from "@/lib/atlas-data";
 
 export default async function TournamentsPage({
@@ -21,8 +22,17 @@ export default async function TournamentsPage({
   return (
     <SectionShell
       title="Campeonatos"
-      description="Calendário real do banco com status derivado, filtros e páginas detalhadas."
+      description="Calendario real do banco com status derivado, filtros e paginas detalhadas."
     >
+      {data.isDegraded ? (
+        <DegradedNotice
+          description={
+            data.degradedReason ??
+            "A lista de campeonatos entrou em fallback porque a base principal nao respondeu."
+          }
+        />
+      ) : null}
+
       <form className="mb-6 grid gap-3 md:grid-cols-[1fr,180px,180px,120px]">
         <SearchInput name="q" placeholder="Buscar campeonato" defaultValue={params.q} />
         <select
