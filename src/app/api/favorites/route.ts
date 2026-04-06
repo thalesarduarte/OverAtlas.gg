@@ -2,10 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { auth } from "@/lib/auth";
 import {
-  createResolvedFavorite,
   favoritePayloadSchema,
   FavoritesResponse
 } from "@/lib/favorites";
+import { createResolvedFavorite } from "@/lib/favorites.server";
 import { prisma } from "@/lib/prisma";
 
 export async function GET() {
@@ -23,10 +23,11 @@ export async function GET() {
     where: { userId },
     orderBy: { createdAt: "desc" }
   });
+  const resolvedFavorites = await Promise.all(favorites.map(createResolvedFavorite));
 
   return NextResponse.json<FavoritesResponse>({
     authenticated: true,
-    favorites: favorites.map(createResolvedFavorite)
+    favorites: resolvedFavorites
   });
 }
 
@@ -62,7 +63,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       message: "Favorito adicionado com sucesso.",
-      favorite: createResolvedFavorite(favorite)
+      favorite: await createResolvedFavorite(favorite)
     });
   } catch {
     return NextResponse.json(

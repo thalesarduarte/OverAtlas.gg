@@ -3,11 +3,10 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import {
-  createResolvedFavorite,
+  createOptimisticFavorite,
   FavoriteRecord,
   FavoritesResponse,
-  FavoriteType,
-  resolveFavoriteItem
+  FavoriteType
 } from "@/lib/favorites";
 import { useToast } from "@/components/ui/toast-provider";
 
@@ -101,7 +100,7 @@ export function useFavoriteToggle(type: FavoriteType, refId: string) {
       await queryClient.cancelQueries({ queryKey: favoritesQueryKey });
 
       const previous = queryClient.getQueryData<FavoritesResponse>(favoritesQueryKey);
-      const optimisticFavorite = createResolvedFavorite({
+      const optimisticFavorite = createOptimisticFavorite({
         id: favorite?.id ?? `temp-${type}-${refId}`,
         type,
         refId,
@@ -156,7 +155,7 @@ export function useFavoriteToggle(type: FavoriteType, refId: string) {
   }
 
   return {
-    favorite: favorite ?? createResolvedFavorite({
+    favorite: favorite ?? createOptimisticFavorite({
       id: `preview-${type}-${refId}`,
       type,
       refId,
@@ -166,7 +165,6 @@ export function useFavoriteToggle(type: FavoriteType, refId: string) {
     isFavorited,
     isLoading: favoritesQuery.isLoading,
     isPending: mutation.isPending,
-    toggleFavorite,
-    previewItem: resolveFavoriteItem(type, refId)
+    toggleFavorite
   };
 }

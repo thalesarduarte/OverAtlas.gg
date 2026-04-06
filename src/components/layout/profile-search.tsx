@@ -59,9 +59,9 @@ export function ProfileSearch() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="hidden flex-1 items-center justify-center md:flex">
-      <div className="flex w-full max-w-md items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-2">
-        <Search className="h-4 w-4 text-slate-400" />
+    <form onSubmit={handleSubmit} className="flex w-full items-center justify-center">
+      <div className="glass-panel flex w-full max-w-2xl items-center gap-2 rounded-full px-3 py-2">
+        <Search className="h-4 w-4 text-cyan-300" />
         <input
           type="text"
           value={battleTag}
@@ -73,7 +73,7 @@ export function ProfileSearch() {
         <button
           type="submit"
           disabled={isLoading}
-          className="inline-flex items-center gap-2 rounded-full bg-amber-400 px-3 py-1.5 text-sm font-semibold text-slate-950 transition hover:opacity-90 disabled:opacity-60"
+          className="inline-flex items-center gap-2 rounded-full bg-cyan-400 px-3 py-1.5 text-sm font-semibold text-slate-950 transition hover:-translate-y-0.5 hover:bg-cyan-300 disabled:opacity-60"
         >
           {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
           Buscar

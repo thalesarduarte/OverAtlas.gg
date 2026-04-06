@@ -70,7 +70,29 @@ export const profiles: Record<string, PlayerProfile> = {
       { heroName: "Soldier: 76", role: "DPS", winrate: 58, hoursPlayed: 42, eliminationsAvg: 22.1, deathsAvg: 5.2, damageAvg: 9380 },
       { heroName: "Cassidy", role: "DPS", winrate: 55, hoursPlayed: 31, eliminationsAvg: 19.2, deathsAvg: 5.8, damageAvg: 8610 },
       { heroName: "Sojourn", role: "DPS", winrate: 53, hoursPlayed: 24, eliminationsAvg: 18.1, deathsAvg: 6.1, damageAvg: 9050 }
-    ]
+    ],
+    summary: {
+      title: "Flex DPS",
+      rankSummary: "Diamond 2 / DPS",
+      overallWinrate: 56,
+      totalHours: 182
+    },
+    heroes: [
+      { heroName: "Soldier: 76", role: "DPS", winrate: 58, hoursPlayed: 42, eliminationsAvg: 22.1, deathsAvg: 5.2, damageAvg: 9380 },
+      { heroName: "Cassidy", role: "DPS", winrate: 55, hoursPlayed: 31, eliminationsAvg: 19.2, deathsAvg: 5.8, damageAvg: 8610 },
+      { heroName: "Sojourn", role: "DPS", winrate: 53, hoursPlayed: 24, eliminationsAvg: 18.1, deathsAvg: 6.1, damageAvg: 9050 }
+    ],
+    roles: [
+      { role: "DPS", hoursPlayed: 140, averageWinrate: 56 },
+      { role: "Support", hoursPlayed: 42, averageWinrate: 49 }
+    ],
+    maps: [
+      { mapName: "Circuit Royal", mode: "Escort", winrate: 61, hoursPlayed: 15 },
+      { mapName: "Colosseo", mode: "Push", winrate: 54, hoursPlayed: 12 },
+      { mapName: "Lijiang Tower", mode: "Control", winrate: 57, hoursPlayed: 9 }
+    ],
+    lastUpdated: new Date("2026-03-30T20:00:00.000Z").toISOString(),
+    source: "mock-cache"
   },
   "proper-1111": {
     battleTag: "Proper#1111",
@@ -84,7 +106,29 @@ export const profiles: Record<string, PlayerProfile> = {
       { heroName: "Tracer", role: "DPS", winrate: 66, hoursPlayed: 61, eliminationsAvg: 24.4, deathsAvg: 4.7, damageAvg: 8420 },
       { heroName: "Genji", role: "DPS", winrate: 62, hoursPlayed: 49, eliminationsAvg: 22.7, deathsAvg: 5.0, damageAvg: 7710 },
       { heroName: "Sojourn", role: "DPS", winrate: 63, hoursPlayed: 37, eliminationsAvg: 20.8, deathsAvg: 5.1, damageAvg: 9820 }
-    ]
+    ],
+    summary: {
+      title: "Elite DPS",
+      rankSummary: "Champion / DPS",
+      overallWinrate: 64,
+      totalHours: 346
+    },
+    heroes: [
+      { heroName: "Tracer", role: "DPS", winrate: 66, hoursPlayed: 61, eliminationsAvg: 24.4, deathsAvg: 4.7, damageAvg: 8420 },
+      { heroName: "Genji", role: "DPS", winrate: 62, hoursPlayed: 49, eliminationsAvg: 22.7, deathsAvg: 5.0, damageAvg: 7710 },
+      { heroName: "Sojourn", role: "DPS", winrate: 63, hoursPlayed: 37, eliminationsAvg: 20.8, deathsAvg: 5.1, damageAvg: 9820 }
+    ],
+    roles: [
+      { role: "DPS", hoursPlayed: 280, averageWinrate: 64 },
+      { role: "Tank", hoursPlayed: 66, averageWinrate: 58 }
+    ],
+    maps: [
+      { mapName: "Esperanca", mode: "Push", winrate: 68, hoursPlayed: 21 },
+      { mapName: "Shambali Monastery", mode: "Escort", winrate: 65, hoursPlayed: 17 },
+      { mapName: "Ilios", mode: "Control", winrate: 62, hoursPlayed: 14 }
+    ],
+    lastUpdated: new Date("2026-03-30T20:00:00.000Z").toISOString(),
+    source: "mock-cache"
   }
 };
 

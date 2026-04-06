@@ -67,7 +67,15 @@ if (process.env.AUTH_BATTLENET_ID && process.env.AUTH_BATTLENET_SECRET) {
     BattleNet({
       clientId: process.env.AUTH_BATTLENET_ID,
       clientSecret: process.env.AUTH_BATTLENET_SECRET,
-      issuer: "https://oauth.battle.net"
+      issuer: "https://oauth.battle.net",
+      profile(profile) {
+        return {
+          id: profile.sub,
+          name: profile.battle_tag,
+          email: `battlenet-${profile.sub}@overatlas.local`,
+          image: null
+        };
+      }
     })
   );
 }
@@ -78,6 +86,49 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   trustHost: true,
   providers,
   callbacks: {
+    async signIn({ user, account, profile }) {
+      if (account?.provider !== "battlenet" || !user.id) {
+        return true;
+      }
+
+      const battleTag =
+        typeof profile === "object" && profile && "battle_tag" in profile
+          ? String(profile.battle_tag)
+          : user.name ?? null;
+
+      if (!battleTag) {
+        return true;
+      }
+
+      const existingLinkedProfile = await prisma.linkedProfile.findUnique({
+        where: {
+          battleTag
+        }
+      });
+
+      if (existingLinkedProfile && existingLinkedProfile.userId !== user.id) {
+        return false;
+      }
+
+      await prisma.linkedProfile.upsert({
+        where: {
+          userId: user.id
+        },
+        update: {
+          battleTag,
+          platform: "Battle.net",
+          lastSyncAt: new Date()
+        },
+        create: {
+          userId: user.id,
+          battleTag,
+          platform: "Battle.net",
+          lastSyncAt: new Date()
+        }
+      });
+
+      return true;
+    },
     jwt({ token, user }) {
       if (user) {
         token.sub = user.id;

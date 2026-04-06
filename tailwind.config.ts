@@ -17,10 +17,10 @@ export default {
         muted: "#94a3b8"
       },
       boxShadow: {
-        glow: "0 0 0 1px rgba(245,158,11,.15), 0 12px 40px rgba(15,23,42,.5)"
+        glow: "0 0 0 1px rgba(56,189,248,.12), 0 18px 48px rgba(2,8,23,.48)"
       },
       backgroundImage: {
-        hero: "radial-gradient(circle at top left, rgba(245, 158, 11, .16), transparent 40%), radial-gradient(circle at top right, rgba(96, 165, 250, .14), transparent 30%)"
+        hero: "radial-gradient(circle at top left, rgba(56, 189, 248, .16), transparent 34%), radial-gradient(circle at top right, rgba(245, 158, 11, .16), transparent 26%), linear-gradient(135deg, rgba(8, 15, 34, .92), rgba(5, 8, 22, .92))"
       }
     }
   },

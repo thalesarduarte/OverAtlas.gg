@@ -1,32 +1,31 @@
-import { ComparisonGrid } from "@/components/stats/comparison-grid";
-import { HeroChart } from "@/components/stats/hero-chart";
-import { SectionShell } from "@/components/ui/section-shell";
-import { profiles, sampleComparison } from "@/lib/mock-data";
+import { CompareClient } from "@/components/compare/compare-client";
+import { comparePlayerProfiles } from "@/lib/profile-service";
 
-export default async function ComparePage({ searchParams }: { searchParams: Promise<{ left?: string; right?: string }> }) {
+export default async function ComparePage({
+  searchParams
+}: {
+  searchParams: Promise<{ player1?: string; player2?: string }>;
+}) {
   const params = await searchParams;
-  const left = params.left ? profiles[params.left] : sampleComparison.left;
-  const right = params.right ? profiles[params.right] : sampleComparison.right;
+  const initialPlayer1 = params.player1 ?? "Proper#1111";
+  const initialPlayer2 = params.player2 ?? "Thales#1234";
+  const initialComparePayload =
+    (await comparePlayerProfiles(initialPlayer1, initialPlayer2)).comparison ??
+    (await comparePlayerProfiles("Proper#1111", "Thales#1234")).comparison;
 
-  const comparison = {
-    left: left ?? sampleComparison.left,
-    right: right ?? sampleComparison.right
-  };
+  if (!initialComparePayload) {
+    return null;
+  }
 
   return (
-    <div className="space-y-6">
-      <SectionShell title="Comparação de perfis" description="Estrutura pronta para comparar o perfil do usuário autenticado com qualquer BattleTag pesquisada.">
-        <ComparisonGrid comparison={comparison} />
-      </SectionShell>
-
-      <div className="grid gap-6 lg:grid-cols-2">
-        <SectionShell title={comparison.left.displayName} description={comparison.left.rankSummary}>
-          <HeroChart data={comparison.left.topHeroes} />
-        </SectionShell>
-        <SectionShell title={comparison.right.displayName} description={comparison.right.rankSummary}>
-          <HeroChart data={comparison.right.topHeroes} />
-        </SectionShell>
-      </div>
-    </div>
+    <CompareClient
+      initialComparison={{
+        left: initialComparePayload.player1,
+        right: initialComparePayload.player2
+      }}
+      initialDiffSummary={initialComparePayload.diffSummary}
+      initialPlayer1={initialPlayer1}
+      initialPlayer2={initialPlayer2}
+    />
   );
 }

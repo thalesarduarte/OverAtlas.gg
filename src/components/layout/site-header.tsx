@@ -1,6 +1,14 @@
 import type { Route } from "next";
 import Link from "next/link";
-import { Newspaper, Radar, Settings, Star, Swords, Trophy, Users } from "lucide-react";
+import {
+  Newspaper,
+  Radar,
+  Settings,
+  Star,
+  Swords,
+  Trophy,
+  Users
+} from "lucide-react";
 
 import { auth, signOut } from "@/lib/auth";
 import { ProfileSearch } from "@/components/layout/profile-search";
@@ -17,77 +25,87 @@ export async function SiteHeader() {
   const session = await auth();
 
   return (
-    <header className="sticky top-0 z-30 border-b border-white/10 bg-background/85 backdrop-blur">
-      <div className="mx-auto flex max-w-7xl items-center justify-between gap-6 px-6 py-4">
-        <Link href="/" className="flex items-center gap-3">
-          <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-amber-400/20 bg-amber-400/10 text-amber-300">
-            <Radar className="h-5 w-5" />
-          </div>
-          <div>
-            <p className="text-xs uppercase tracking-[0.35em] text-slate-400">Overwatch Hub</p>
-            <p className="text-xl font-bold text-white">OverAtlas</p>
-          </div>
-        </Link>
+    <header className="sticky top-0 z-40 border-b border-white/10 bg-slate-950/65 backdrop-blur-2xl">
+      <div className="mx-auto flex w-full max-w-[1500px] flex-col gap-4 px-4 py-4 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-between gap-4">
+          <Link href="/" className="group flex items-center gap-3">
+            <div className="flex h-12 w-12 items-center justify-center rounded-[1.25rem] border border-cyan-400/20 bg-cyan-400/10 text-cyan-200 transition group-hover:scale-105 group-hover:border-cyan-300/30">
+              <Radar className="h-5 w-5" />
+            </div>
+            <div>
+              <p className="app-heading text-[11px] uppercase tracking-[0.38em] text-slate-500">
+                Overwatch Command Hub
+              </p>
+              <p className="app-heading text-2xl font-black text-white">OverAtlas</p>
+            </div>
+          </Link>
 
-        <ProfileSearch />
+          <div className="hidden min-w-[320px] flex-1 justify-center lg:flex">
+            <ProfileSearch />
+          </div>
 
-        <nav className="hidden items-center gap-2 md:flex">
+          <div className="flex items-center gap-3">
+            {session ? (
+              <div className="flex items-center gap-3">
+                <div className="hidden rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm text-slate-300 md:block">
+                  {session.user?.name || session.user?.email}
+                </div>
+                <Link
+                  href="/configuracoes"
+                  className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm text-slate-100 transition hover:-translate-y-0.5 hover:border-cyan-300/30 hover:bg-white/10"
+                >
+                  <Settings className="h-4 w-4" />
+                  Configuracoes
+                </Link>
+                <form
+                  action={async () => {
+                    "use server";
+                    await signOut({ redirectTo: "/" });
+                  }}
+                >
+                  <button
+                    type="submit"
+                    className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm text-slate-100 transition hover:-translate-y-0.5 hover:bg-white/10"
+                  >
+                    Sair
+                  </button>
+                </form>
+              </div>
+            ) : (
+              <>
+                <Link
+                  href="/login"
+                  className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm text-slate-100 transition hover:-translate-y-0.5 hover:bg-white/10"
+                >
+                  Entrar
+                </Link>
+                <Link
+                  href="/register"
+                  className="rounded-full bg-amber-400 px-4 py-2 text-sm font-semibold text-slate-950 transition hover:-translate-y-0.5 hover:shadow-lg hover:shadow-amber-400/20"
+                >
+                  Criar conta
+                </Link>
+              </>
+            )}
+          </div>
+        </div>
+
+        <div className="lg:hidden">
+          <ProfileSearch />
+        </div>
+
+        <nav className="flex gap-2 overflow-x-auto pb-1">
           {links.map(({ href, label, icon: Icon }) => (
             <Link
               key={href}
               href={href}
-              className="inline-flex items-center gap-2 rounded-full border border-white/10 px-4 py-2 text-sm text-slate-200 transition hover:border-amber-300/30 hover:bg-white/5"
+              className="inline-flex shrink-0 items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-sm text-slate-200 transition hover:-translate-y-0.5 hover:border-cyan-300/30 hover:bg-white/10"
             >
               <Icon className="h-4 w-4" />
               {label}
             </Link>
           ))}
         </nav>
-
-        <div className="flex items-center gap-3">
-          {session ? (
-            <div className="flex items-center gap-3">
-              <span className="hidden text-sm text-slate-300 md:inline">
-                {session.user?.name || session.user?.email}
-              </span>
-              <Link
-                href="/configuracoes"
-                className="inline-flex items-center gap-2 rounded-full border border-white/10 px-4 py-2 text-sm text-slate-200 transition hover:bg-white/5"
-              >
-                <Settings className="h-4 w-4" />
-                Configuracoes
-              </Link>
-              <form
-                action={async () => {
-                  "use server";
-                  await signOut({ redirectTo: "/" });
-                }}
-              >
-                <button
-                  type="submit"
-                  className="rounded-full border border-white/10 px-4 py-2 text-sm text-slate-200 transition hover:bg-white/5"
-                >
-                  Sair
-                </button>
-              </form>
-            </div>
-          ) : (
-            <>
-              <Link
-                href="/login"
-                className="rounded-full border border-white/10 px-4 py-2 text-sm text-slate-200 transition hover:bg-white/5"
-              >
-                Entrar
-              </Link>
-              <Link
-                href="/register"
-                className="rounded-full bg-amber-400 px-4 py-2 text-sm font-semibold text-slate-950 transition hover:opacity-90"
-              >
-                Criar conta
-              </Link>
-            </>
-          )}
-        </div>
       </div>
     </header>
   );

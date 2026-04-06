@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { getPlayerProfile } from "@/lib/profile-service";
+import { getPlayerProfileResult } from "@/lib/profile-service";
 
 export async function GET(request: NextRequest) {
   const battleTag = request.nextUrl.searchParams.get("battletag");
@@ -12,14 +12,19 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  const profile = await getPlayerProfile(battleTag);
+  const result = await getPlayerProfileResult(battleTag);
 
-  if (!profile) {
+  if (!result.profile) {
     return NextResponse.json(
-      { error: "Perfil nao encontrado." },
-      { status: 404 }
+      {
+        error:
+          result.errorCode === "upstream_error"
+            ? "Nao foi possivel consultar a OverFast agora."
+            : "Perfil nao encontrado."
+      },
+      { status: result.errorCode === "upstream_error" ? 503 : 404 }
     );
   }
 
-  return NextResponse.json(profile);
+  return NextResponse.json(result.profile);
 }

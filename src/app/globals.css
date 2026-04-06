@@ -4,6 +4,17 @@
 
 :root {
   color-scheme: dark;
+  --oa-bg: #050816;
+  --oa-bg-elevated: rgba(13, 19, 38, 0.72);
+  --oa-bg-soft: rgba(255, 255, 255, 0.04);
+  --oa-line: rgba(148, 163, 184, 0.14);
+  --oa-line-strong: rgba(56, 189, 248, 0.24);
+  --oa-text: #eef2ff;
+  --oa-muted: #94a3b8;
+  --oa-accent: #f59e0b;
+  --oa-accent-alt: #38bdf8;
+  --oa-accent-danger: #f43f5e;
+  --oa-shadow: 0 0 0 1px rgba(56, 189, 248, 0.08), 0 24px 60px rgba(2, 8, 23, 0.45);
 }
 
 * {
@@ -17,9 +28,14 @@ html {
 body {
   margin: 0;
   min-height: 100vh;
-  background: #060816;
-  color: #eef2ff;
-  font-family: Arial, Helvetica, sans-serif;
+  color: var(--oa-text);
+  font-family: "Bahnschrift", "Segoe UI", "Trebuchet MS", sans-serif;
+  background:
+    radial-gradient(circle at top left, rgba(56, 189, 248, 0.16), transparent 24%),
+    radial-gradient(circle at top right, rgba(245, 158, 11, 0.14), transparent 28%),
+    radial-gradient(circle at bottom center, rgba(168, 85, 247, 0.08), transparent 26%),
+    linear-gradient(180deg, #030611 0%, #050816 52%, #08101f 100%);
+  background-attachment: fixed;
 }
 
 a {
@@ -27,6 +43,88 @@ a {
   text-decoration: none;
 }
 
-input, button {
+input, button, textarea, select {
   font: inherit;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+  background-size: 36px 36px;
+  mask-image: radial-gradient(circle at center, black, transparent 88%);
+  opacity: 0.4;
+}
+
+@keyframes card-rise {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+.app-heading {
+  font-family: "Orbitron", "Bahnschrift", "Segoe UI", sans-serif;
+  letter-spacing: 0.02em;
+}
+
+.glass-panel {
+  background: linear-gradient(180deg, rgba(15, 23, 42, 0.74), rgba(15, 23, 42, 0.52));
+  border: 1px solid var(--oa-line);
+  box-shadow: var(--oa-shadow);
+  backdrop-filter: blur(18px);
+}
+
+.surface-soft {
+  background: var(--oa-bg-soft);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.card-hover {
+  transition:
+    transform 220ms ease,
+    border-color 220ms ease,
+    background-color 220ms ease,
+    box-shadow 220ms ease;
+}
+
+.card-hover:hover {
+  transform: translateY(-4px);
+  border-color: rgba(56, 189, 248, 0.24);
+  box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.08), 0 18px 40px rgba(2, 8, 23, 0.42);
+}
+
+.skeleton-block {
+  background:
+    linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 0.04) 25%,
+      rgba(56, 189, 248, 0.16) 50%,
+      rgba(255, 255, 255, 0.04) 75%
+    );
+  background-size: 200% 100%;
+  animation: shimmer 1.6s linear infinite;
+}
+
+.chart-card {
+  animation: card-rise 0.45s ease-out both;
 }

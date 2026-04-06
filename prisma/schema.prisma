@@ -13,6 +13,36 @@ enum FavoriteType {
   TOURNAMENT
 }
 
+enum ExternalSource {
+  OFFICIAL
+  LIQUIPEDIA
+  OWTV
+  MANUAL
+}
+
+enum ExternalEntityType {
+  TEAM
+  TEAM_RANKING
+  PLAYER
+  TOURNAMENT
+  TOURNAMENT_STAGE
+  MATCH
+  NEWS_POST
+}
+
+enum MatchStatus {
+  SCHEDULED
+  LIVE
+  COMPLETED
+  CANCELED
+}
+
+enum SyncJobStatus {
+  RUNNING
+  SUCCEEDED
+  FAILED
+}
+
 model User {
   id            String          @id @default(cuid())
   name          String?
@@ -63,19 +93,31 @@ model VerificationToken {
 }
 
 model Team {
-  id          String   @id @default(cuid())
-  slug        String   @unique
+  id          String              @id @default(cuid())
+  slug        String              @unique
+  canonicalName String?          @unique
   name        String
   shortName   String?
   logoUrl     String?
   region      String?
   description String?
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+  aliases     TeamAlias[]
   players     Player[]
+  rosters     Roster[]
+  history     PlayerTeamHistory[]
+  rankings    TeamRanking[]
+  homeMatches Match[]             @relation("HomeTeamMatches")
+  awayMatches Match[]             @relation("AwayTeamMatches")
+  wonMatches  Match[]             @relation("WinnerTeamMatches")
+  externalRefs ExternalRef[]
 }
 
 model Player {
-  id          String   @id @default(cuid())
-  slug        String   @unique
+  id          String              @id @default(cuid())
+  slug        String              @unique
+  canonicalName String?          @unique
   name        String
   realName    String?
   region      String?
@@ -83,19 +125,237 @@ model Player {
   photoUrl    String?
   description String?
   teamId      String?
-  team        Team?    @relation(fields: [teamId], references: [id], onDelete: SetNull)
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+  team        Team?               @relation(fields: [teamId], references: [id], onDelete: SetNull)
+  aliases     PlayerAlias[]
+  rosters     Roster[]
+  history     PlayerTeamHistory[]
+  externalRefs ExternalRef[]
 }
 
 model Tournament {
-  id          String   @id @default(cuid())
-  slug        String   @unique
+  id          String              @id @default(cuid())
+  slug        String              @unique
+  canonicalName String?          @unique
   name        String
+  shortName   String?
   stage       String?
   location    String?
   startDate   DateTime?
   endDate     DateTime?
   prizePool   String?
   description String?
+  aliases     String[]            @default([])
+  aliasCanonicalNames String[]    @default([])
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+  stages      TournamentStage[]
+  matches     Match[]
+  rosters     Roster[]
+  rankings    TeamRanking[]
+  externalRefs ExternalRef[]
+}
+
+model TeamRanking {
+  id          String         @id @default(cuid())
+  teamId       String
+  tournamentId String?
+  source      ExternalSource
+  position    Int
+  points      Int?
+  wins        Int?
+  losses      Int?
+  draws       Int?
+  record      String?
+  sourceLabel String?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  team        Team           @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  tournament  Tournament?    @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  externalRefs ExternalRef[]
+
+  @@unique([teamId, tournamentId, source])
+  @@index([source, position])
+}
+
+model TeamAlias {
+  id            String         @id @default(cuid())
+  teamId         String
+  value          String
+  canonicalName  String
+  source         ExternalSource?
+  createdAt      DateTime       @default(now())
+  team           Team           @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@unique([teamId, value])
+  @@index([canonicalName])
+}
+
+model PlayerAlias {
+  id            String         @id @default(cuid())
+  playerId       String
+  value          String
+  canonicalName  String
+  source         ExternalSource?
+  createdAt      DateTime       @default(now())
+  player         Player         @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@unique([playerId, value])
+  @@index([canonicalName])
+}
+
+model TournamentStage {
+  id            String        @id @default(cuid())
+  tournamentId  String
+  slug          String        @unique
+  canonicalName String?       @unique
+  name          String
+  stageType     String?
+  order         Int?
+  startDate     DateTime?
+  endDate       DateTime?
+  aliases       String[]      @default([])
+  aliasCanonicalNames String[] @default([])
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  tournament    Tournament    @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  matches       Match[]
+  externalRefs  ExternalRef[]
+}
+
+model Match {
+  id            String         @id @default(cuid())
+  name          String
+  slug          String         @unique
+  canonicalName String?        @unique
+  tournamentId  String?
+  stageId       String?
+  homeTeamId    String?
+  awayTeamId    String?
+  winnerTeamId  String?
+  status        MatchStatus    @default(SCHEDULED)
+  scheduledAt   DateTime?
+  completedAt   DateTime?
+  bestOf        Int?
+  scoreHome     Int?
+  scoreAway     Int?
+  vodUrl        String?
+  sourceLabel   String?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  tournament    Tournament?    @relation(fields: [tournamentId], references: [id], onDelete: SetNull)
+  stage         TournamentStage? @relation(fields: [stageId], references: [id], onDelete: SetNull)
+  homeTeam      Team?          @relation("HomeTeamMatches", fields: [homeTeamId], references: [id], onDelete: SetNull)
+  awayTeam      Team?          @relation("AwayTeamMatches", fields: [awayTeamId], references: [id], onDelete: SetNull)
+  winnerTeam    Team?          @relation("WinnerTeamMatches", fields: [winnerTeamId], references: [id], onDelete: SetNull)
+  externalRefs  ExternalRef[]
+
+  @@index([scheduledAt])
+}
+
+model NewsPost {
+  id            String         @id @default(cuid())
+  slug          String         @unique
+  canonicalName String?        @unique
+  title         String
+  excerpt       String?
+  body          String?
+  tag           String?
+  url           String?
+  imageUrl      String?
+  source        ExternalSource
+  publishedAt   DateTime?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  externalRefs  ExternalRef[]
+
+  @@index([source, publishedAt])
+}
+
+model Roster {
+  id            String       @id @default(cuid())
+  teamId         String
+  playerId       String
+  tournamentId   String?
+  role           String?
+  isActive       Boolean      @default(true)
+  joinedAt       DateTime?
+  leftAt         DateTime?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  team           Team         @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  player         Player       @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  tournament     Tournament?  @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+
+  @@unique([teamId, playerId, tournamentId])
+}
+
+model PlayerTeamHistory {
+  id            String         @id @default(cuid())
+  playerId       String
+  teamId         String
+  role           String?
+  startDate      DateTime?
+  endDate        DateTime?
+  isCurrent      Boolean        @default(false)
+  source         ExternalSource?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  player         Player         @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  team           Team           @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@index([playerId, teamId])
+}
+
+model ExternalRef {
+  id            String             @id @default(cuid())
+  source        ExternalSource
+  entityType    ExternalEntityType
+  externalId    String
+  url           String?
+  metadata      Json?
+  teamId        String?
+  playerId      String?
+  tournamentId  String?
+  stageId       String?
+  matchId       String?
+  rankingId     String?
+  newsPostId    String?
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+  team          Team?              @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  ranking       TeamRanking?       @relation(fields: [rankingId], references: [id], onDelete: Cascade)
+  player        Player?            @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  tournament    Tournament?        @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  stage         TournamentStage?   @relation(fields: [stageId], references: [id], onDelete: Cascade)
+  match         Match?             @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  newsPost      NewsPost?          @relation(fields: [newsPostId], references: [id], onDelete: Cascade)
+
+  @@unique([source, entityType, externalId])
+  @@index([teamId])
+  @@index([playerId])
+  @@index([tournamentId])
+  @@index([stageId])
+  @@index([matchId])
+  @@index([rankingId])
+  @@index([newsPostId])
+}
+
+model SyncJob {
+  id          String         @id @default(cuid())
+  source      ExternalSource
+  name        String
+  status      SyncJobStatus
+  startedAt   DateTime       @default(now())
+  finishedAt  DateTime?
+  error       String?
+  payload     Json?
+  result      Json?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  @@index([source, startedAt])
 }
 
 model Favorite {
